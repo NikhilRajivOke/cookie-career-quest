@@ -39,6 +39,9 @@ function doGet(e) {
       case 'list':
         result = { success: true, data: listApplications_() };
         break;
+      case 'feed':
+        result = { success: true, data: listJobMatches_() };
+        break;
       case 'parse':
         result = { success: true, data: parseJobUrl_(params.url) };
         break;
@@ -478,6 +481,26 @@ function getMatchProfile_() {
 function getExistingFeedUrls_(feedSheet) {
   const values = feedSheet.getDataRange().getValues().slice(1);
   return new Set(values.map(r => r[6]).filter(Boolean));
+}
+
+function listJobMatches_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName(FEED_SHEET);
+  if (!sheet) return [];
+  const rows = sheet.getDataRange().getValues().slice(1);
+  return rows
+    .filter(r => r[6]) // has a Job URL
+    .map(r => ({
+      dateFound: formatDate_(r[0]),
+      company: r[1],
+      title: r[2],
+      location: r[3],
+      posted: r[4],
+      score: r[5],
+      url: r[6],
+      source: r[7],
+    }))
+    .sort((a, b) => b.score - a.score);
 }
 
 // ---------- Scoring ----------

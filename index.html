@@ -190,6 +190,57 @@
   .page-btn.active{background:var(--berry);color:#fff;border-color:var(--berry);}
   .page-ellipsis{color:var(--charcoal);font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:0 2px;}
 
+  .view-tabs{
+    display:flex;gap:8px;justify-content:center;margin-bottom:32px;
+  }
+  .view-tab{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:var(--card);color:var(--charcoal);
+    padding:9px 20px;border-radius:20px;cursor:pointer;transition:all .15s ease;
+  }
+  .view-tab:hover{border-color:var(--espresso);color:var(--espresso);}
+  .view-tab.active{background:var(--espresso);color:#fff;border-color:var(--espresso);}
+
+  .match-card{
+    display:grid;
+    grid-template-columns:52px 1fr auto;
+    align-items:center;
+    gap:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:10px;
+  }
+  .match-score{
+    width:48px;height:48px;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--cream-deep);border:2px solid var(--honey);flex-shrink:0;
+  }
+  .match-score .n{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--espresso);line-height:1;}
+  .match-score .l{font-size:8px;text-transform:uppercase;color:var(--charcoal);letter-spacing:.03em;}
+  .match-main .title{font-weight:600;font-size:15px;color:var(--espresso);}
+  .match-sub{font-size:12.5px;color:var(--charcoal);margin-top:2px;}
+  .match-sub .dot{margin:0 6px;}
+  .match-actions{display:flex;gap:8px;flex-shrink:0;}
+  .btn-apply{
+    background:var(--sage-deep);color:#fff;border:none;border-radius:8px;
+    padding:9px 16px;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
+    cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap;
+  }
+  .btn-apply:hover{background:var(--sage);}
+  .btn-track{
+    background:transparent;color:var(--charcoal);border:1px solid var(--line);
+    border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-weight:600;
+    font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .btn-track:hover{border-color:var(--espresso);color:var(--espresso);}
+
+  @media(max-width:720px){
+    .match-card{grid-template-columns:40px 1fr;grid-template-rows:auto auto;}
+    .match-actions{grid-column:2;margin-top:8px;}
+  }
+
   .log-empty{
     text-align:center;padding:50px 20px;color:var(--charcoal);
     border:1px dashed var(--line);border-radius:14px;font-size:14px;
@@ -288,27 +339,42 @@
     </div>
   </div>
 
-  <div class="stats" id="statsRow"></div>
+  <div class="view-tabs">
+    <button class="view-tab active" id="tabApplications" onclick="switchView('applications')">My Applications</button>
+    <button class="view-tab" id="tabMatches" onclick="switchView('matches')">Job Matches</button>
+  </div>
 
-  <div class="section-head">
-    <h2>Quest log</h2>
-    <div class="section-head-right">
-      <span class="count" id="entryCount"></span>
-      <select class="sort-select" id="sortSelect" onchange="handleSortChange()">
-        <option value="date-desc">Newest first</option>
-        <option value="date-asc">Oldest first</option>
-        <option value="company-asc">Company (A–Z)</option>
-        <option value="company-desc">Company (Z–A)</option>
-        <option value="title-asc">Job title (A–Z)</option>
-        <option value="status">Status</option>
-      </select>
+  <div id="applicationsView">
+    <div class="stats" id="statsRow"></div>
+
+    <div class="section-head">
+      <h2>Quest log</h2>
+      <div class="section-head-right">
+        <span class="count" id="entryCount"></span>
+        <select class="sort-select" id="sortSelect" onchange="handleSortChange()">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="company-asc">Company (A–Z)</option>
+          <option value="company-desc">Company (Z–A)</option>
+          <option value="title-asc">Job title (A–Z)</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
     </div>
+    <div class="search-row">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search by company, title, location…" oninput="handleSearchChange()">
+    </div>
+    <div id="logContainer"><div class="log-empty">Loading…</div></div>
+    <div class="pagination" id="paginationRow"></div>
   </div>
-  <div class="search-row">
-    <input type="text" id="searchInput" class="search-input" placeholder="Search by company, title, location…" oninput="handleSearchChange()">
+
+  <div id="matchesView" style="display:none;">
+    <div class="section-head">
+      <h2>Job matches</h2>
+      <span class="count" id="matchCount"></span>
+    </div>
+    <div id="matchesContainer"><div class="log-empty">Loading…</div></div>
   </div>
-  <div id="logContainer"><div class="log-empty">Loading…</div></div>
-  <div class="pagination" id="paginationRow"></div>
 
   <footer>Data lives in your <a href="https://docs.google.com/spreadsheets/d/15b2HlPIlJ_vGS_3lhoRiZ5IJ6EuIsb_b66gXb0Erbos/edit" target="_blank">Google Sheet</a> — edit it directly any time.</footer>
 </div>
@@ -452,6 +518,66 @@ async function loadApplications(){
     document.getElementById('logContainer').innerHTML =
       '<div class="log-empty">Couldn\'t load the log: ' + err.message + '</div>';
   }
+}
+
+let matchesLoaded = false;
+
+function switchView(view){
+  const isApps = view === 'applications';
+  document.getElementById('applicationsView').style.display = isApps ? '' : 'none';
+  document.getElementById('matchesView').style.display = isApps ? 'none' : '';
+  document.getElementById('tabApplications').classList.toggle('active', isApps);
+  document.getElementById('tabMatches').classList.toggle('active', !isApps);
+  if(!isApps && !matchesLoaded){
+    loadMatches();
+  }
+}
+
+async function loadMatches(){
+  if(!isConfigured()){
+    document.getElementById('matchesContainer').innerHTML =
+      '<div class="log-empty">Connect the Apps Script backend to see matches.</div>';
+    return;
+  }
+  try{
+    const res = await jsonp({action:'feed'});
+    if(!res.success) throw new Error(res.error);
+    matchesLoaded = true;
+    renderMatches(res.data);
+  }catch(err){
+    document.getElementById('matchesContainer').innerHTML =
+      '<div class="log-empty">Couldn\'t load matches: ' + err.message + '</div>';
+  }
+}
+
+function renderMatches(matches){
+  document.getElementById('matchCount').textContent =
+    matches.length + (matches.length===1?' match':' matches');
+  if(!matches.length){
+    document.getElementById('matchesContainer').innerHTML =
+      '<div class="log-empty">No matches yet. The daily scan will fill this in — or run "Job Scraper → Run scan now" from the sheet menu.</div>';
+    return;
+  }
+  document.getElementById('matchesContainer').innerHTML = matches.map((m, i) => `
+    <div class="match-card">
+      <div class="match-score"><span class="n">${m.score}</span><span class="l">score</span></div>
+      <div class="match-main">
+        <div class="title">${escapeHtml(m.title||'Untitled role')}</div>
+        <div class="match-sub">${escapeHtml(m.company||'')}${m.location?' <span class="dot">·</span> '+escapeHtml(m.location):''}${m.posted?' <span class="dot">·</span> '+escapeHtml(m.posted):''}</div>
+      </div>
+      <div class="match-actions">
+        <button class="btn-track" onclick='trackMatch(${i})'>Track</button>
+        <a class="btn-apply" href="${m.url}" target="_blank">Apply →</a>
+      </div>
+    </div>`).join('');
+  window._currentMatches = matches;
+}
+
+function trackMatch(i){
+  const m = window._currentMatches[i];
+  pendingParsed = { url: m.url, source: m.source, note: '' };
+  openReview({ company: m.company, title: m.title, location: m.location, source: m.source });
+  switchView('applications');
 }
 
 function renderStats(apps){
