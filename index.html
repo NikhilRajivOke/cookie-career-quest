@@ -166,6 +166,30 @@
   }
   .sort-select:hover{border-color:var(--espresso);}
 
+  .search-row{margin-bottom:14px;}
+  .search-input{
+    width:100%;
+    border:1px solid var(--line);border-radius:10px;
+    padding:11px 14px;font-family:'Inter',sans-serif;font-size:14px;
+    background:var(--card);color:var(--espresso);outline:none;
+  }
+  .search-input:focus{border-color:var(--berry);}
+  .search-input::placeholder{color:#B3A697;}
+
+  .pagination{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    margin-top:18px;
+  }
+  .page-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+    border:1px solid var(--line);border-radius:8px;background:var(--card);
+    color:var(--espresso);padding:7px 12px;cursor:pointer;min-width:34px;
+  }
+  .page-btn:hover:not(:disabled){border-color:var(--espresso);}
+  .page-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .page-btn.active{background:var(--berry);color:#fff;border-color:var(--berry);}
+  .page-ellipsis{color:var(--charcoal);font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:0 2px;}
+
   .log-empty{
     text-align:center;padding:50px 20px;color:var(--charcoal);
     border:1px dashed var(--line);border-radius:14px;font-size:14px;
@@ -280,7 +304,11 @@
       </select>
     </div>
   </div>
+  <div class="search-row">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search by company, title, location…" oninput="handleSearchChange()">
+  </div>
   <div id="logContainer"><div class="log-empty">Loading…</div></div>
+  <div class="pagination" id="paginationRow"></div>
 
   <footer>Data lives in your <a href="https://docs.google.com/spreadsheets/d/15b2HlPIlJ_vGS_3lhoRiZ5IJ6EuIsb_b66gXb0Erbos/edit" target="_blank">Google Sheet</a> — edit it directly any time.</footer>
 </div>
@@ -301,7 +329,21 @@ const STATUS_LETTER = {
 
 let allApplications = [];
 let pendingParsed = null;
+let currentPage = 1;
+const PAGE_SIZE = 8;
 const STATUS_ORDER = ['Offer','Interviewing','Screening','Applied','Ghosted','Withdrawn','Rejected'];
+
+function filterApplications(apps, query){
+  if(!query) return apps;
+  const q = query.toLowerCase();
+  return apps.filter(a =>
+    (a.company||'').toLowerCase().includes(q) ||
+    (a.title||'').toLowerCase().includes(q) ||
+    (a.location||'').toLowerCase().includes(q) ||
+    (a.status||'').toLowerCase().includes(q) ||
+    (a.source||'').toLowerCase().includes(q)
+  );
+}
 
 function sortApplications(apps, mode){
   const sorted = [...apps];
@@ -330,7 +372,46 @@ function sortApplications(apps, mode){
 }
 
 function handleSortChange(){
+  currentPage = 1;
   renderLog(allApplications);
+}
+
+function handleSearchChange(){
+  currentPage = 1;
+  renderLog(allApplications);
+}
+
+function goToPage(page){
+  currentPage = page;
+  renderLog(allApplications);
+  document.getElementById('logContainer').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderPagination(totalItems){
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const container = document.getElementById('paginationRow');
+  if(totalPages <= 1){ container.innerHTML = ''; return; }
+
+  const pages = [];
+  const add = p => pages.push(p);
+  add(1);
+  if(currentPage > 3) add('…');
+  for(let p = currentPage-1; p <= currentPage+1; p++){
+    if(p > 1 && p < totalPages) add(p);
+  }
+  if(currentPage < totalPages-2) add('…');
+  if(totalPages > 1) add(totalPages);
+
+  const seen = new Set();
+  const html = [`<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goToPage(${currentPage-1})">‹</button>`];
+  pages.forEach(p => {
+    if(p === '…'){ html.push('<span class="page-ellipsis">…</span>'); return; }
+    if(seen.has(p)) return;
+    seen.add(p);
+    html.push(`<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`);
+  });
+  html.push(`<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goToPage(${currentPage+1})">›</button>`);
+  container.innerHTML = html.join('');
 }
 
 function jsonp(params){
@@ -394,16 +475,36 @@ function renderStats(apps){
 }
 
 function renderLog(apps){
-  document.getElementById('entryCount').textContent = apps.length + (apps.length===1?' entry':' entries');
+  const query = document.getElementById('searchInput').value.trim();
+  const filtered = filterApplications(apps, query);
+
+  document.getElementById('entryCount').textContent =
+    filtered.length + (filtered.length===1?' entry':' entries') +
+    (query ? ` for "${escapeHtml(query)}"` : '');
+
   if(!apps.length){
     document.getElementById('logContainer').innerHTML =
       '<div class="log-empty">No applications yet. Paste a link above to add your first one.</div>';
+    document.getElementById('paginationRow').innerHTML = '';
     return;
   }
+  if(!filtered.length){
+    document.getElementById('logContainer').innerHTML =
+      '<div class="log-empty">No applications match that search.</div>';
+    document.getElementById('paginationRow').innerHTML = '';
+    return;
+  }
+
   const mode = document.getElementById('sortSelect').value;
-  const sorted = sortApplications(apps, mode);
+  const sorted = sortApplications(filtered, mode);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = totalPages;
+  if(currentPage < 1) currentPage = 1;
+  const pageItems = sorted.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+
   const statuses = Object.keys(STATUS_COLORS);
-  document.getElementById('logContainer').innerHTML = sorted.map(a => {
+  document.getElementById('logContainer').innerHTML = pageItems.map(a => {
     const color = STATUS_COLORS[a.status] || '#8C7A65';
     const letter = STATUS_LETTER[a.status] || '?';
     const options = statuses.map(s => `<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
@@ -418,6 +519,7 @@ function renderLog(apps){
         <select class="status-select" style="color:${color};border-color:${color}55" onchange="changeStatus('${a.id}', this.value)">${options}</select>
       </div>`;
   }).join('');
+  renderPagination(sorted.length);
 }
 
 function escapeHtml(str){
