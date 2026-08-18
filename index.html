@@ -158,6 +158,13 @@
     font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;
   }
   .section-head .count{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--charcoal);}
+  .section-head-right{display:flex;align-items:center;gap:14px;}
+  .sort-select{
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+    background:#fff;color:var(--espresso);cursor:pointer;
+  }
+  .sort-select:hover{border-color:var(--espresso);}
 
   .log-empty{
     text-align:center;padding:50px 20px;color:var(--charcoal);
@@ -261,7 +268,17 @@
 
   <div class="section-head">
     <h2>Quest log</h2>
-    <span class="count" id="entryCount"></span>
+    <div class="section-head-right">
+      <span class="count" id="entryCount"></span>
+      <select class="sort-select" id="sortSelect" onchange="handleSortChange()">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="company-asc">Company (A–Z)</option>
+        <option value="company-desc">Company (Z–A)</option>
+        <option value="title-asc">Job title (A–Z)</option>
+        <option value="status">Status</option>
+      </select>
+    </div>
   </div>
   <div id="logContainer"><div class="log-empty">Loading…</div></div>
 
@@ -284,6 +301,37 @@ const STATUS_LETTER = {
 
 let allApplications = [];
 let pendingParsed = null;
+const STATUS_ORDER = ['Offer','Interviewing','Screening','Applied','Ghosted','Withdrawn','Rejected'];
+
+function sortApplications(apps, mode){
+  const sorted = [...apps];
+  switch(mode){
+    case 'date-asc':
+      sorted.sort((a,b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+      break;
+    case 'company-asc':
+      sorted.sort((a,b) => (a.company||'').localeCompare(b.company||''));
+      break;
+    case 'company-desc':
+      sorted.sort((a,b) => (b.company||'').localeCompare(a.company||''));
+      break;
+    case 'title-asc':
+      sorted.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+      break;
+    case 'status':
+      sorted.sort((a,b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
+        || new Date(b.dateAdded) - new Date(a.dateAdded));
+      break;
+    case 'date-desc':
+    default:
+      sorted.sort((a,b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+  }
+  return sorted;
+}
+
+function handleSortChange(){
+  renderLog(allApplications);
+}
 
 function jsonp(params){
   return new Promise((resolve, reject) => {
@@ -352,8 +400,10 @@ function renderLog(apps){
       '<div class="log-empty">No applications yet. Paste a link above to add your first one.</div>';
     return;
   }
+  const mode = document.getElementById('sortSelect').value;
+  const sorted = sortApplications(apps, mode);
   const statuses = Object.keys(STATUS_COLORS);
-  document.getElementById('logContainer').innerHTML = apps.map(a => {
+  document.getElementById('logContainer').innerHTML = sorted.map(a => {
     const color = STATUS_COLORS[a.status] || '#8C7A65';
     const letter = STATUS_LETTER[a.status] || '?';
     const options = statuses.map(s => `<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
