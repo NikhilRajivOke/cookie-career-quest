@@ -351,6 +351,9 @@ function ensureScraperSheets_() {
     companies.appendRow(['Affirm', 'greenhouse', 'affirm', true]);
     companies.appendRow(['Airbnb', 'greenhouse', 'airbnb', true]);
     companies.appendRow(['Plaid', 'lever', 'plaid', true]);
+    companies.appendRow(['HubSpot', 'greenhouse', 'hubspotjobs', true]);
+    companies.appendRow(['Klaviyo', 'greenhouse', 'klaviyojobs', true]);
+    companies.appendRow(['Toast', 'greenhouse', 'toast', true]);
     companies.setFrozenRows(1);
     companies.getRange(1, 1, 1, 4).setFontWeight('bold');
   }
