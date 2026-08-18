@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cookie's Career Quest 🍪✨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF1DE;
+    --cream-deep:#F1E4C6;
+    --espresso:#3A2418;
+    --charcoal:#6B5D52;
+    --berry:#A63A50;
+    --berry-deep:#832C3D;
+    --sage:#748A66;
+    --sage-deep:#5C7050;
+    --honey:#D9A441;
+    --rose:#C97C86;
+    --line:rgba(58,36,24,0.14);
+    --card:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--espresso);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding:56px 0 40px;
+    text-align:center;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--berry);
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:clamp(34px,5vw,52px);
+    margin:0 0 10px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--charcoal);
+    font-size:16px;
+    max-width:480px;
+    margin:0 auto 32px;
+    line-height:1.5;
+  }
+
+  .tracker-form{
+    display:flex;
+    gap:10px;
+    max-width:640px;
+    margin:0 auto;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:8px;
+    box-shadow:0 2px 0 var(--line);
+  }
+  .tracker-form input{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:12px 14px;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+    color:var(--espresso);
+    outline:none;
+  }
+  .tracker-form input::placeholder{color:#B3A697;}
+  .btn{
+    border:none;
+    border-radius:9px;
+    padding:12px 22px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    transition:transform .12s ease, background .15s ease;
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--berry);color:#fff;}
+  .btn-primary:hover{background:var(--berry-deep);}
+  .btn-primary:disabled{background:#C9BBA6;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--charcoal);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--espresso);color:var(--espresso);}
+
+  .config-warning{
+    max-width:640px;margin:16px auto 0;
+    background:#FFF6E8;border:1px solid var(--honey);
+    color:#7A5A16;font-size:13px;padding:10px 14px;border-radius:10px;
+    display:none;
+  }
+
+  /* ---------- Review panel ---------- */
+  .review{
+    max-width:640px;margin:20px auto 0;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:20px 22px;
+    display:none;
+  }
+  .review h3{
+    font-family:'Fraunces',serif;font-size:19px;margin:0 0 4px;font-weight:600;
+  }
+  .review .hint{font-size:12.5px;color:var(--charcoal);margin-bottom:16px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--charcoal);}
+  .field input, .field select{
+    border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:var(--espresso);
+  }
+  .review-actions{display:flex;gap:10px;margin-top:6px;}
+
+  /* ---------- Stats ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:12px;
+    margin:48px 0 40px;
+  }
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 14px;text-align:left;
+  }
+  .stat .num{
+    font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:500;
+    color:var(--espresso);
+  }
+  .stat .label{
+    font-size:11.5px;color:var(--charcoal);margin-top:4px;
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .stat.accent-berry .num{color:var(--berry);}
+  .stat.accent-sage .num{color:var(--sage-deep);}
+  .stat.accent-honey .num{color:#A87317;}
+
+  /* ---------- Quest log ---------- */
+  .section-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .section-head h2{
+    font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;
+  }
+  .section-head .count{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--charcoal);}
+
+  .log-empty{
+    text-align:center;padding:50px 20px;color:var(--charcoal);
+    border:1px dashed var(--line);border-radius:14px;font-size:14px;
+  }
+
+  .entry{
+    display:grid;
+    grid-template-columns:44px 1fr auto auto;
+    align-items:center;
+    gap:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:10px;
+  }
+  .stamp{
+    width:40px;height:40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:700;font-size:15px;color:#fff;
+    transform:rotate(-6deg);
+    border:2px dashed rgba(255,255,255,.55);
+    flex-shrink:0;
+  }
+  .entry-main a{color:var(--espresso);text-decoration:none;font-weight:600;font-size:15px;}
+  .entry-main a:hover{color:var(--berry);}
+  .entry-sub{font-size:12.5px;color:var(--charcoal);margin-top:2px;}
+  .entry-sub .dot{margin:0 6px;}
+  .entry-date{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--charcoal);
+    text-align:right;white-space:nowrap;
+  }
+  .status-select{
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    border-radius:20px;padding:6px 12px;border:1px solid var(--line);
+    background:#fff;color:var(--espresso);cursor:pointer;
+  }
+
+  footer{
+    text-align:center;color:var(--charcoal);font-size:12.5px;margin-top:60px;
+  }
+  footer a{color:var(--berry);}
+
+  @media(max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .field-row{grid-template-columns:1fr;}
+    .entry{grid-template-columns:36px 1fr;grid-template-rows:auto auto;}
+    .entry-date{grid-column:2;text-align:left;}
+    .status-select{grid-column:2;justify-self:start;margin-top:4px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Cookie's Career Quest</div>
+    <h1>Track every application<br>without the busywork</h1>
+    <p class="sub">Paste the job posting link. Everything else — company, title, location, salary — gets pulled in for you to check over before it's saved.</p>
+
+    <div class="tracker-form">
+      <input id="urlInput" type="url" placeholder="Paste a job description link…" />
+      <button class="btn btn-primary" id="trackBtn" onclick="handleTrack()">Add to log</button>
+    </div>
+    <div class="config-warning" id="configWarning">
+      ⚠️ Backend not connected yet — open index.html and set <code>APPS_SCRIPT_URL</code> at the top of the script to your deployed Apps Script Web App URL.
+    </div>
+  </div>
+
+  <div class="review" id="reviewPanel">
+    <h3 id="reviewTitle">Review before saving</h3>
+    <div class="hint" id="reviewHint">Fix anything that looks off — this is what gets written to the sheet.</div>
+    <div class="field-row">
+      <div class="field"><label>Company</label><input id="f_company"></div>
+      <div class="field"><label>Job title</label><input id="f_title"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Location</label><input id="f_location"></div>
+      <div class="field"><label>Salary</label><input id="f_salary"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Status</label>
+        <select id="f_status">
+          <option>Applied</option><option>Screening</option><option>Interviewing</option>
+          <option>Offer</option><option>Rejected</option><option>Withdrawn</option><option>Ghosted</option>
+        </select>
+      </div>
+      <div class="field"><label>Source</label><input id="f_source"></div>
+    </div>
+    <div class="field-row">
+      <div class="field full"><label>Notes</label><input id="f_notes" placeholder="Optional"></div>
+    </div>
+    <div class="review-actions">
+      <button class="btn btn-primary" onclick="saveApplication()">Save to log</button>
+      <button class="btn btn-ghost" onclick="closeReview()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="section-head">
+    <h2>Quest log</h2>
+    <span class="count" id="entryCount"></span>
+  </div>
+  <div id="logContainer"><div class="log-empty">Loading…</div></div>
+
+  <footer>Data lives in your <a href="https://docs.google.com/spreadsheets/d/15b2HlPIlJ_vGS_3lhoRiZ5IJ6EuIsb_b66gXb0Erbos/edit" target="_blank">Google Sheet</a> — edit it directly any time.</footer>
+</div>
+
+<script>
+/* ===== CONFIGURE THIS ===== */
+const APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+/* ========================== */
+
+const STATUS_COLORS = {
+  Applied:'#8C7A65', Screening:'#B98C3E', Interviewing:'#A87317',
+  Offer:'#5C7050', Rejected:'#832C3D', Withdrawn:'#6B5D52', Ghosted:'#9B8C7A'
+};
+const STATUS_LETTER = {
+  Applied:'A', Screening:'S', Interviewing:'I', Offer:'O',
+  Rejected:'R', Withdrawn:'W', Ghosted:'G'
+};
+
+let allApplications = [];
+let pendingParsed = null;
+
+function jsonp(params){
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const script = document.createElement('script');
+    const qs = new URLSearchParams({...params, callback: cbName}).toString();
+    window[cbName] = (data) => {
+      resolve(data);
+      delete window[cbName];
+      script.remove();
+    };
+    script.onerror = () => reject(new Error('Network error contacting Apps Script'));
+    script.src = APPS_SCRIPT_URL + '?' + qs;
+    document.body.appendChild(script);
+  });
+}
+
+function isConfigured(){
+  return APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith('http');
+}
+
+async function loadApplications(){
+  if(!isConfigured()){
+    document.getElementById('configWarning').style.display = 'block';
+    renderStats([]);
+    document.getElementById('logContainer').innerHTML =
+      '<div class="log-empty">Connect the Apps Script backend to start tracking.</div>';
+    return;
+  }
+  try{
+    const res = await jsonp({action:'list'});
+    if(!res.success) throw new Error(res.error);
+    allApplications = res.data;
+    renderStats(allApplications);
+    renderLog(allApplications);
+  }catch(err){
+    document.getElementById('logContainer').innerHTML =
+      '<div class="log-empty">Couldn\'t load the log: ' + err.message + '</div>';
+  }
+}
+
+function renderStats(apps){
+  const total = apps.length;
+  const active = apps.filter(a => !['Rejected','Withdrawn','Ghosted'].includes(a.status)).length;
+  const interviewing = apps.filter(a => a.status === 'Interviewing').length;
+  const offers = apps.filter(a => a.status === 'Offer').length;
+  const responded = apps.filter(a => a.status !== 'Applied').length;
+  const responseRate = total ? Math.round((responded/total)*100) : 0;
+
+  const stats = [
+    {num:total, label:'Total applications', accent:''},
+    {num:active, label:'Active', accent:''},
+    {num:interviewing, label:'Interviewing', accent:'accent-honey'},
+    {num:offers, label:'Offers', accent:'accent-sage'},
+    {num:responseRate + '%', label:'Response rate', accent:'accent-berry'},
+  ];
+  document.getElementById('statsRow').innerHTML = stats.map(s =>
+    `<div class="stat ${s.accent}"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`
+  ).join('');
+}
+
+function renderLog(apps){
+  document.getElementById('entryCount').textContent = apps.length + (apps.length===1?' entry':' entries');
+  if(!apps.length){
+    document.getElementById('logContainer').innerHTML =
+      '<div class="log-empty">No applications yet. Paste a link above to add your first one.</div>';
+    return;
+  }
+  const statuses = Object.keys(STATUS_COLORS);
+  document.getElementById('logContainer').innerHTML = apps.map(a => {
+    const color = STATUS_COLORS[a.status] || '#8C7A65';
+    const letter = STATUS_LETTER[a.status] || '?';
+    const options = statuses.map(s => `<option value="${s}" ${s===a.status?'selected':''}>${s}</option>`).join('');
+    return `
+      <div class="entry">
+        <div class="stamp" style="background:${color}">${letter}</div>
+        <div class="entry-main">
+          <a href="${a.url||'#'}" target="_blank">${escapeHtml(a.title||'Untitled role')}</a>
+          <div class="entry-sub">${escapeHtml(a.company||'Unknown company')}${a.location?' <span class="dot">·</span> '+escapeHtml(a.location):''}${a.salary?' <span class="dot">·</span> '+escapeHtml(a.salary):''}</div>
+        </div>
+        <div class="entry-date">${a.dateAdded||''}</div>
+        <select class="status-select" style="color:${color};border-color:${color}55" onchange="changeStatus('${a.id}', this.value)">${options}</select>
+      </div>`;
+  }).join('');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function handleTrack(){
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url){ return; }
+  if(!isConfigured()){
+    document.getElementById('configWarning').style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('trackBtn');
+  btn.disabled = true;
+  btn.textContent = 'Fetching…';
+  try{
+    const res = await jsonp({action:'parse', url});
+    if(!res.success) throw new Error(res.error);
+    pendingParsed = res.data;
+    openReview(pendingParsed);
+  }catch(err){
+    alert('Could not fetch that page: ' + err.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Add to log';
+  }
+}
+
+function openReview(data){
+  document.getElementById('f_company').value = data.company || '';
+  document.getElementById('f_title').value = data.title || '';
+  document.getElementById('f_location').value = data.location || '';
+  document.getElementById('f_salary').value = data.salary || '';
+  document.getElementById('f_status').value = 'Applied';
+  document.getElementById('f_source').value = data.source || '';
+  document.getElementById('f_notes').value = '';
+  document.getElementById('reviewHint').textContent = data.note ||
+    'Looks like this came through cleanly — double check and save.';
+  document.getElementById('reviewPanel').style.display = 'block';
+  document.getElementById('reviewPanel').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function closeReview(){
+  document.getElementById('reviewPanel').style.display = 'none';
+  pendingParsed = null;
+}
+
+async function saveApplication(){
+  const payload = {
+    action: 'add',
+    company: document.getElementById('f_company').value,
+    title: document.getElementById('f_title').value,
+    location: document.getElementById('f_location').value,
+    salary: document.getElementById('f_salary').value,
+    status: document.getElementById('f_status').value,
+    source: document.getElementById('f_source').value,
+    notes: document.getElementById('f_notes').value,
+    url: pendingParsed ? pendingParsed.url : document.getElementById('urlInput').value.trim(),
+  };
+  try{
+    const res = await jsonp(payload);
+    if(!res.success) throw new Error(res.error);
+    closeReview();
+    document.getElementById('urlInput').value = '';
+    await loadApplications();
+  }catch(err){
+    alert('Could not save: ' + err.message);
+  }
+}
+
+async function changeStatus(id, status){
+  try{
+    const res = await jsonp({action:'updateStatus', id, status});
+    if(!res.success) throw new Error(res.error);
+    await loadApplications();
+  }catch(err){
+    alert('Could not update status: ' + err.message);
+  }
+}
+
+loadApplications();
+</script>
+</body>
+</html>
