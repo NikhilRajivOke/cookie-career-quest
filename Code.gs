@@ -345,9 +345,12 @@ function ensureScraperSheets_() {
   if (!companies) {
     companies = ss.insertSheet(COMPANIES_SHEET);
     companies.appendRow(['Company', 'ATS', 'Board ID / API URL', 'Active']);
-    companies.appendRow(['Example — Airbnb', 'greenhouse', 'airbnb', false]);
-    companies.appendRow(['Example — Netflix', 'lever', 'netflix', false]);
-    companies.appendRow(['Example — see README for Workday setup', 'workday', '', false]);
+    companies.appendRow(['DoorDash', 'greenhouse', 'doordashusa', true]);
+    companies.appendRow(['Coinbase', 'greenhouse', 'coinbase', true]);
+    companies.appendRow(['Robinhood', 'greenhouse', 'robinhood', true]);
+    companies.appendRow(['Affirm', 'greenhouse', 'affirm', true]);
+    companies.appendRow(['Airbnb', 'greenhouse', 'airbnb', true]);
+    companies.appendRow(['Plaid', 'lever', 'plaid', true]);
     companies.setFrozenRows(1);
     companies.getRange(1, 1, 1, 4).setFontWeight('bold');
   }
