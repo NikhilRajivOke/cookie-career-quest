@@ -357,6 +357,12 @@ function ensureScraperSheets_() {
     companies.appendRow(['HubSpot', 'greenhouse', 'hubspotjobs', true]);
     companies.appendRow(['Klaviyo', 'greenhouse', 'klaviyojobs', true]);
     companies.appendRow(['Toast', 'greenhouse', 'toast', true]);
+    companies.appendRow(['Stripe', 'greenhouse', 'stripe', true]);
+    companies.appendRow(['Instacart', 'greenhouse', 'instacart', true]);
+    companies.appendRow(['Databricks', 'greenhouse', 'databricks', true]);
+    companies.appendRow(['Oscar Health', 'greenhouse', 'oscar', true]);
+    companies.appendRow(['Earnest', 'greenhouse', 'earnest', true]);
+    companies.appendRow(['Alma', 'greenhouse', 'alma', true]);
     companies.setFrozenRows(1);
     companies.getRange(1, 1, 1, 4).setFontWeight('bold');
   }
