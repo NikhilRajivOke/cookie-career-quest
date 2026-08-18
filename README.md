@@ -106,3 +106,60 @@ if the sheet is empty:
 
 You can edit rows directly in the sheet any time — the site just re-reads it
 on every load.
+
+## Job scraper (daily matches from your target companies)
+
+A separate part of `Code.gs` scans specific companies' job boards once a day
+and drops anything posted in the last 24 hours that matches your profile
+into a new **Job Feed** tab. It runs entirely inside Apps Script — no changes
+to the deployed web app URL, so the tracker site isn't affected.
+
+**One-time setup:**
+
+1. Update `Code.gs` in the Apps Script editor with the latest version from
+   [GitHub](https://github.com/NikhilRajivOke/cookie-career-quest/blob/main/Code.gs)
+   (this now includes the scraper functions at the bottom — the tracker code
+   above it is unchanged). Save.
+2. Reload the Google Sheet in your browser (a full page refresh, not just
+   switching tabs). You should see a new **Job Scraper** menu appear next to
+   Help.
+3. Three new tabs get created automatically: **Companies**, **Match
+   Profile**, **Job Feed**.
+4. In the **Companies** tab, replace the example rows with real ones:
+   | Company | ATS | Board ID / API URL | Active |
+   |---|---|---|---|
+   | Airbnb | greenhouse | `airbnb` | TRUE |
+   | Netflix | lever | `netflix` | TRUE |
+
+   - **Greenhouse board ID**: the slug in their careers URL, e.g.
+     `job-boards.greenhouse.io/airbnb` → board ID is `airbnb`.
+   - **Lever company slug**: the slug in `jobs.lever.co/{slug}`.
+   - **Workday**: there's no standard public API — you have to find each
+     tenant's endpoint manually. Open the company's Workday careers page,
+     open browser devtools → Network tab, search for a job, and look for a
+     POST request to a URL containing `/wday/cxs/`. Copy that full URL as
+     the Board ID. Workday's list view only gives relative dates ("Posted
+     Today"), so matching is less precise there than Greenhouse/Lever.
+5. In the **Match Profile** tab, edit the pre-filled skills, title keywords,
+   preferred locations, and minimum match score to taste. This is what
+   scoring is based on — no code changes needed to adjust it.
+6. From the **Job Scraper** menu: click **"Set up daily trigger (run
+   once)"**. You'll be asked to authorize the script the first time — same
+   consent flow as the web app deployment. This makes it run automatically
+   every day around 7am from then on.
+7. To test immediately instead of waiting for tomorrow: **Job Scraper → Run
+   scan now**.
+
+**How matching works:** each job gets a 0–100 score — 50 points if the title
+contains any of your Title Keywords, up to 40 points scaled by how many
+Must-Have Skills appear in the title/description, 10 points if the location
+matches one of your Preferred Locations. Only jobs at or above your Minimum
+Match Score, posted within the last 24 hours, get added — and each is only
+added once (duplicates are skipped on repeat scans).
+
+**Adding a match to your tracker:** copy the Job URL from a Job Feed row and
+paste it into the tracker site like any other job link — same parse/review/
+save flow.
+
+**Menu missing?** Simple triggers like `onOpen` only fire on a real page
+load, not a tab switch — refresh the sheet in your browser.

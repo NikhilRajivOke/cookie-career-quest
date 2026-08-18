@@ -318,3 +318,265 @@ function matchAttr_(html, property) {
     html.match(new RegExp('<meta[^>]+content=["\']([^"\']*)["\'][^>]+property=["\']' + property + '["\']', 'i'));
   return m ? m[1] : '';
 }
+
+// =====================================================================
+// JOB SCRAPER — daily scan of target companies' ATS boards for matches
+// =====================================================================
+
+const COMPANIES_SHEET = 'Companies';
+const PROFILE_SHEET = 'Match Profile';
+const FEED_SHEET = 'Job Feed';
+const SCAN_FUNCTION = 'dailyJobScan_';
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Job Scraper')
+    .addItem('Run scan now', 'runScanNow')
+    .addItem('Set up daily trigger (run once)', 'setupDailyTrigger')
+    .addItem('Remove daily trigger', 'removeDailyTrigger')
+    .addToUi();
+  ensureScraperSheets_();
+}
+
+function ensureScraperSheets_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  let companies = ss.getSheetByName(COMPANIES_SHEET);
+  if (!companies) {
+    companies = ss.insertSheet(COMPANIES_SHEET);
+    companies.appendRow(['Company', 'ATS', 'Board ID / API URL', 'Active']);
+    companies.appendRow(['Example — Airbnb', 'greenhouse', 'airbnb', false]);
+    companies.appendRow(['Example — Netflix', 'lever', 'netflix', false]);
+    companies.appendRow(['Example — see README for Workday setup', 'workday', '', false]);
+    companies.setFrozenRows(1);
+    companies.getRange(1, 1, 1, 4).setFontWeight('bold');
+  }
+
+  let profile = ss.getSheetByName(PROFILE_SHEET);
+  if (!profile) {
+    profile = ss.insertSheet(PROFILE_SHEET);
+    profile.appendRow(['Field', 'Value']);
+    profile.appendRow(['Must-Have Skills', 'Java, Spring Boot, Kafka, GraphQL, Microservices, AWS']);
+    profile.appendRow(['Title Keywords', 'Senior Software Engineer, Staff Software Engineer, Backend Engineer, SDE II, SDE III']);
+    profile.appendRow(['Preferred Locations', 'New York, NY, Remote, Seattle, WA, San Francisco, CA, Sunnyvale, CA']);
+    profile.appendRow(['Minimum Match Score', '40']);
+    profile.setFrozenRows(1);
+    profile.getRange(1, 1, 1, 2).setFontWeight('bold');
+    profile.setColumnWidth(2, 420);
+  }
+
+  let feed = ss.getSheetByName(FEED_SHEET);
+  if (!feed) {
+    feed = ss.insertSheet(FEED_SHEET);
+    feed.appendRow(['Date Found', 'Company', 'Job Title', 'Location', 'Posted', 'Match Score', 'Job URL', 'Source', 'Added to Tracker']);
+    feed.setFrozenRows(1);
+    feed.getRange(1, 1, 1, 9).setFontWeight('bold');
+  }
+  return { companies, profile, feed };
+}
+
+// ---------- Menu-triggered wrappers (safe to show UI alerts) ----------
+
+function runScanNow() {
+  ensureScraperSheets_();
+  try {
+    const count = dailyJobScan_();
+    SpreadsheetApp.getUi().alert('Scan complete', count + ' new matching job(s) added to the Job Feed tab.', SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (err) {
+    SpreadsheetApp.getUi().alert('Scan failed', String(err), SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+
+function setupDailyTrigger() {
+  removeDailyTrigger();
+  ScriptApp.newTrigger(SCAN_FUNCTION)
+    .timeBased()
+    .atHour(7)
+    .everyDays(1)
+    .create();
+  SpreadsheetApp.getUi().alert('Daily trigger set', 'The scan will now run automatically every day around 7am.', SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+function removeDailyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === SCAN_FUNCTION) ScriptApp.deleteTrigger(t);
+  });
+}
+
+// ---------- Core scan (no UI calls — safe for time-driven triggers) ----------
+
+function dailyJobScan_() {
+  const { feed } = ensureScraperSheets_();
+  const companies = getCompanies_();
+  const profile = getMatchProfile_();
+  const existingUrls = getExistingFeedUrls_(feed);
+
+  const matches = [];
+  companies.forEach(c => {
+    if (!c.active) return;
+    let jobs = [];
+    try {
+      if (c.ats === 'greenhouse') jobs = fetchGreenhouseJobs_(c.boardId);
+      else if (c.ats === 'lever') jobs = fetchLeverJobs_(c.boardId);
+      else if (c.ats === 'workday') jobs = fetchWorkdayJobs_(c.boardId);
+    } catch (e) {
+      jobs = [];
+    }
+    jobs.forEach(j => {
+      if (!j.url || existingUrls.has(j.url)) return;
+      if (!isWithin24h_(j.postedAt)) return;
+      const score = scoreJob_(j, profile);
+      if (score >= profile.minScore) {
+        matches.push(Object.assign({}, j, { company: c.name, ats: c.ats, score }));
+      }
+    });
+  });
+
+  matches.sort((a, b) => b.score - a.score);
+  appendToFeed_(feed, matches);
+  return matches.length;
+}
+
+// ---------- Config readers ----------
+
+function getCompanies_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName(COMPANIES_SHEET);
+  if (!sheet) return [];
+  const rows = sheet.getDataRange().getValues().slice(1);
+  return rows
+    .filter(r => r[0] && r[1])
+    .map(r => ({
+      name: String(r[0]).trim(),
+      ats: String(r[1]).trim().toLowerCase(),
+      boardId: String(r[2]).trim(),
+      active: r[3] === true || String(r[3]).toLowerCase() === 'true',
+    }));
+}
+
+function getMatchProfile_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName(PROFILE_SHEET);
+  const rows = sheet.getDataRange().getValues().slice(1);
+  const map = {};
+  rows.forEach(r => { map[String(r[0]).trim()] = r[1]; });
+  const splitList = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
+  return {
+    skills: splitList(map['Must-Have Skills']),
+    titleKeywords: splitList(map['Title Keywords']),
+    locations: splitList(map['Preferred Locations']),
+    minScore: Number(map['Minimum Match Score']) || 40,
+  };
+}
+
+function getExistingFeedUrls_(feedSheet) {
+  const values = feedSheet.getDataRange().getValues().slice(1);
+  return new Set(values.map(r => r[6]).filter(Boolean));
+}
+
+// ---------- Scoring ----------
+
+function scoreJob_(job, profile) {
+  const titleLower = (job.title || '').toLowerCase();
+  const bodyText = ((job.title || '') + ' ' + (job.description || '')).toLowerCase();
+  const locLower = (job.location || '').toLowerCase();
+
+  let titleScore = 0;
+  if (profile.titleKeywords.length) {
+    titleScore = profile.titleKeywords.some(k => titleLower.includes(k.toLowerCase())) ? 1 : 0;
+  }
+
+  let skillScore = 0;
+  if (profile.skills.length) {
+    const hits = profile.skills.filter(s => bodyText.includes(s.toLowerCase())).length;
+    skillScore = hits / profile.skills.length;
+  }
+
+  let locationScore = 0;
+  if (profile.locations.length) {
+    locationScore = profile.locations.some(l => locLower.includes(l.toLowerCase())) ? 1 : 0;
+  }
+
+  return Math.round(titleScore * 50 + skillScore * 40 + locationScore * 10);
+}
+
+function isWithin24h_(date) {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) return false;
+  const diff = Date.now() - date.getTime();
+  return diff >= 0 && diff <= 24 * 60 * 60 * 1000;
+}
+
+// ---------- ATS fetchers ----------
+
+function fetchGreenhouseJobs_(boardToken) {
+  const url = 'https://boards-api.greenhouse.io/v1/boards/' + encodeURIComponent(boardToken) + '/jobs?content=true';
+  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (res.getResponseCode() >= 400) return [];
+  const data = JSON.parse(res.getContentText());
+  return (data.jobs || []).map(j => ({
+    title: j.title || '',
+    url: j.absolute_url || '',
+    location: (j.location && j.location.name) || '',
+    postedAt: j.updated_at ? new Date(j.updated_at) : null,
+    description: stripHtml_(j.content || ''),
+  }));
+}
+
+function fetchLeverJobs_(companySlug) {
+  const url = 'https://api.lever.co/v0/postings/' + encodeURIComponent(companySlug) + '?mode=json';
+  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  if (res.getResponseCode() >= 400) return [];
+  const data = JSON.parse(res.getContentText());
+  return (Array.isArray(data) ? data : []).map(j => ({
+    title: j.text || '',
+    url: j.hostedUrl || '',
+    location: (j.categories && j.categories.location) || '',
+    postedAt: j.createdAt ? new Date(Number(j.createdAt)) : null,
+    description: stripHtml_(j.descriptionPlain || j.description || ''),
+  }));
+}
+
+// Workday has no standard public API — each tenant's endpoint must be found
+// manually (browser devtools → Network tab on the company's careers page,
+// look for a POST request to a URL containing "/wday/cxs/"). Paste that full
+// URL as the Board ID for workday rows. Workday's list view only exposes
+// relative posted dates ("Posted Today", "Posted Yesterday", etc.), so this
+// is treated as within-24h only when it says "Posted Today" — less precise
+// than Greenhouse/Lever, which give exact timestamps.
+function fetchWorkdayJobs_(apiUrl) {
+  if (!apiUrl) return [];
+  const base = apiUrl.match(/^https?:\/\/[^/]+/)[0];
+  const res = UrlFetchApp.fetch(apiUrl, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: '' }),
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() >= 400) return [];
+  const data = JSON.parse(res.getContentText());
+  return (data.jobPostings || []).map(j => {
+    const posted = (j.postedOn || '').toLowerCase();
+    const postedAt = posted.indexOf('today') !== -1 ? new Date() : null;
+    return {
+      title: j.title || '',
+      url: j.externalPath ? base + j.externalPath : '',
+      location: j.locationsText || '',
+      postedAt,
+      description: '',
+    };
+  });
+}
+
+function stripHtml_(html) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
+}
+
+function appendToFeed_(feedSheet, matches) {
+  if (!matches.length) return;
+  const now = new Date();
+  const rows = matches.map(m => [
+    now, m.company, m.title, m.location || '', formatDate_(m.postedAt),
+    m.score, m.url, m.ats, false,
+  ]);
+  feedSheet.getRange(feedSheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+}
