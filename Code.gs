@@ -359,9 +359,9 @@ function ensureScraperSheets_() {
   if (!profile) {
     profile = ss.insertSheet(PROFILE_SHEET);
     profile.appendRow(['Field', 'Value']);
-    profile.appendRow(['Must-Have Skills', 'Java, Spring Boot, Kafka, GraphQL, Microservices, AWS']);
-    profile.appendRow(['Title Keywords', 'Senior Software Engineer, Staff Software Engineer, Backend Engineer, SDE II, SDE III']);
-    profile.appendRow(['Preferred Locations', 'New York, NY, Remote, Seattle, WA, San Francisco, CA, Sunnyvale, CA']);
+    profile.appendRow(['Must-Have Skills', 'Business Analysis, Agile, Scrum, JIRA, Confluence, BRD, FRD, Requirements Gathering, Stakeholder Management, UAT, Change Management, Risk Management, MS Project, Power BI, CSM']);
+    profile.appendRow(['Title Keywords', 'Business Analyst, Business Systems Analyst, Scrum Master, Agile Business Analyst, IT Business Analyst, Technical Business Analyst, Project Coordinator, Associate Business Analyst']);
+    profile.appendRow(['Preferred Locations', 'Boston, MA, New York, NY, Remote']);
     profile.appendRow(['Minimum Match Score', '40']);
     profile.setFrozenRows(1);
     profile.getRange(1, 1, 1, 2).setFontWeight('bold');
